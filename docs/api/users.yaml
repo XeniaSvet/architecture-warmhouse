@@ -1,0 +1,206 @@
+openapi: 3.0.3
+
+info:
+  title: User Service API
+  description: API управления пользователями Warmhouse System
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:8080/api/v1
+
+tags:
+  - name: Users
+  - name: Authentication
+
+paths:
+  /auth/login:
+    post:
+      summary: Аутентификация пользователя
+      description: Вход в систему по email и паролю. Возвращает JWT токен.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: user@example.com
+                password:
+                  type: string
+                  format: password
+                  example: "Secret123!"
+      responses:
+        '200':
+          description: Успешный вход
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                    example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+        '401':
+          description: Неверный email или пароль
+
+  /users:
+    get:
+      summary: Получение списка пользователей
+      description: Возвращает список всех зарегистрированных пользователей (требуется токен).
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Список пользователей успешно получен
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/UserResponse'
+        '401':
+          description: Не авторизован
+
+    post:
+      summary: Создание (регистрация) пользователя
+      description: Регистрация нового пользователя в системе. Токен не требуется.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserCreate'
+      responses:
+        '201':
+          description: Пользователь успешно создан
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '400':
+          description: Некорректные входные данные или email уже занят
+
+  /users/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        description: Уникальный идентификатор пользователя
+        schema:
+          type: string
+          format: uuid
+          example: "123e4567-e89b-12d3-a456-426614174000"
+
+    get:
+      summary: Получение пользователя по ID
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Пользователь найден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '401':
+          description: Не авторизован
+        '404':
+          description: Пользователь не найден
+
+    put:
+      summary: Изменение пользователя
+      description: Полное или частичное обновление данных пользователя по его ID.
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserUpdate'
+      responses:
+        '200':
+          description: Данные успешно обновлены
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '401':
+          description: Не авторизован
+        '404':
+          description: Пользователь не найден
+
+    delete:
+      summary: Удаление пользователя
+      security:
+        - BearerAuth: []
+      responses:
+        '204':
+          description: Пользователь успешно удален (нет содержимого)
+        '401':
+          description: Не авторизован
+        '404':
+          description: Пользователь не найден
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    UserCreate:
+      type: object
+      required:
+        - name
+        - email
+        - password
+      properties:
+        name:
+          type: string
+          example: "Иван Иванов"
+        email:
+          type: string
+          format: email
+          example: user@example.com
+        password:
+          type: string
+          format: password
+          example: "Secret123!"
+
+    UserUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+          example: "Иван Петров"
+        email:
+          type: string
+          format: email
+          example: newemail@example.com
+
+    UserResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "123e4567-e89b-12d3-a456-426614174000"
+        name:
+          type: string
+          example: "Иван Иванов"
+        email:
+          type: string
+          format: email
+          example: user@example.com
+        createdAt:
+          type: string
+          format: date-time
+          example: "2026-06-27T18:00:00Z"
