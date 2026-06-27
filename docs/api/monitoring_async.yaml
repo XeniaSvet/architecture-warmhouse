@@ -1,0 +1,62 @@
+asyncapi: 3.0.0
+info:
+  title: Monitoring Service Async API
+  version: 1.0.0
+  description: |
+    Asynchronous API for monitoring processing in Warmhouse System.
+defaultContentType: application/json
+servers:
+  kafka:
+    host: 'kafka:9092'
+    protocol: kafka
+
+channels:
+  deviceTelemetryChannel:
+    address: 'v1.monitoring.telemetry'
+    title: Канал данных телеметрии
+    summary: Топик/очередь, куда устройства публикуют свои метрики.
+    messages:
+      telemetryRecordMessage:
+        $ref: '#/components/messages/TelemetryRecord'
+
+operations:
+  recordTelemetry:
+    action: receive
+    channel:
+      $ref: '#/channels/deviceTelemetryChannel'
+    summary: Запись новых данных мониторинга
+    description: Сервер мониторинга слушает этот канал и асинхронно записывает поступающие от устройств метрики в базу данных временных рядов (Time-Series DB).
+
+components:
+  messages:
+    TelemetryRecord:
+      name: TelemetryRecord
+      title: Запись телеметрии устройства
+      summary: Сообщение, содержащее уникальный ID устройства, время замера и произвольный набор метрик.
+      contentType: application/json
+      payload:
+        type: object
+        required:
+          - deviceId
+          - timestamp
+          - metrics
+        properties:
+          deviceId:
+            type: string
+            format: uuid
+            description: Уникальный идентификатор устройства, отправившего данные.
+            example: "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d"
+          timestamp:
+            type: string
+            format: date-time
+            description: Точное время снятия показаний на самом устройстве (ISO 8601).
+            example: "2026-06-27T22:15:30Z"
+          metrics:
+            type: object
+            description: Набор числовых метрик (ключ-значение). Сюда можно передавать любые параметры.
+            additionalProperties:
+              type: number
+            example:
+              temperature: 24.1
+              humidity: 42.8
+              cpu_usage: 12.5
